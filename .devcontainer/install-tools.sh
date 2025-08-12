@@ -281,6 +281,40 @@ else
     record_status "claude-monitor" "Failed" "UV not available - install UV first"
 fi
 
+# Install Zsh if not installed
+echo "### Zsh Installation" >> "$REPORT_FILE"
+if ! command_exists zsh; then
+    echo "Installing Zsh..."
+    if command_exists apt-get; then
+        if try_install "zsh" "apt-get install -y zsh"; then
+            record_status "zsh" "Success" "Installed via apt-get"
+        else
+            record_status "zsh" "Failed" "Installation failed"
+        fi
+    else
+        record_status "zsh" "Failed" "No supported package manager"
+    fi
+else
+    record_status "zsh" "Already Installed" "Version: $(zsh --version 2>/dev/null | head -n1 || echo 'unknown')"
+fi
+
+# Install Oh My Zsh if not installed
+echo "### Oh My Zsh Installation" >> "$REPORT_FILE"
+if [ ! -d "$HOME/.oh-my-zsh" ]; then
+    echo "Installing Oh My Zsh..."
+    if command_exists curl; then
+        sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
+        record_status "oh-my-zsh" "Success" "Installed to $HOME/.oh-my-zsh"
+    elif command_exists wget; then
+        sh -c "$(wget -qO- https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
+        record_status "oh-my-zsh" "Success" "Installed to $HOME/.oh-my-zsh"  
+    else
+        record_status "oh-my-zsh" "Failed" "Neither curl nor wget available"
+    fi
+else
+    record_status "oh-my-zsh" "Already Installed" "Located at $HOME/.oh-my-zsh"
+fi
+
 # Install Miniforge
 echo "### Miniforge Installation" >> "$REPORT_FILE"
 if ! command_exists conda && ! command_exists mamba; then
@@ -339,6 +373,82 @@ else
     record_status "powerlevel10k" "Failed" "Git is required but not found"
 fi
 
+# Configure Zsh with Powerlevel10k
+echo "Configuring Zsh with Powerlevel10k..."
+cat > ~/.zshrc << 'EOF'
+# Enable Powerlevel10k instant prompt
+if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
+  source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
+fi
+
+# Path to Oh My Zsh
+export ZSH="$HOME/.oh-my-zsh"
+
+# Set theme to Powerlevel10k
+ZSH_THEME="powerlevel10k/powerlevel10k"
+
+# Plugins
+plugins=(git docker python node)
+
+# Source Oh My Zsh
+source $ZSH/oh-my-zsh.sh
+
+# User configuration
+export PATH="$HOME/.local/bin:$HOME/bin:$PATH"
+
+# Miniforge/Conda initialization
+if [ -f "$HOME/miniforge3/etc/profile.d/conda.sh" ]; then
+    . "$HOME/miniforge3/etc/profile.d/conda.sh"
+fi
+
+# Add cargo/rust binaries to PATH (for UV)
+export PATH="$HOME/.cargo/bin:$PATH"
+
+# Load P10k configuration
+[[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
+EOF
+
+# Create basic P10k configuration
+cat > ~/.p10k.zsh << 'EOF'
+# Basic Powerlevel10k configuration
+'builtin' 'local' '-a' 'p10k_config_opts'
+[[ ! -o 'aliases'         ]] || p10k_config_opts+=('aliases')
+[[ ! -o 'sh_glob'         ]] || p10k_config_opts+=('sh_glob')
+[[ ! -o 'no_brace_expand' ]] || p10k_config_opts+=('no_brace_expand')
+'builtin' 'setopt' 'no_aliases' 'no_sh_glob' 'brace_expand'
+
+() {
+  emulate -L zsh -o extended_glob
+  unset -m '(POWERLEVEL9K_*|DEFAULT_USER)~POWERLEVEL9K_GITSTATUS_DIR'
+  
+  typeset -g POWERLEVEL9K_LEFT_PROMPT_ELEMENTS=(
+    dir
+    vcs
+    newline
+    prompt_char
+  )
+  
+  typeset -g POWERLEVEL9K_RIGHT_PROMPT_ELEMENTS=(
+    status
+    command_execution_time
+    virtualenv
+    conda
+    node_version
+    time
+  )
+  
+  typeset -g POWERLEVEL9K_PROMPT_ADD_NEWLINE=true
+  typeset -g POWERLEVEL9K_PROMPT_CHAR_{OK,ERROR}_VIINS_CONTENT_EXPANSION='❯'
+  typeset -g POWERLEVEL9K_INSTANT_PROMPT=verbose
+  
+  (( ! $+functions[p10k] )) || p10k reload
+}
+
+typeset -g POWERLEVEL9K_CONFIG_FILE=${${(%):-%x}:a}
+(( ${#p10k_config_opts} )) && setopt ${p10k_config_opts[@]}
+'builtin' 'unset' 'p10k_config_opts'
+EOF
+
 # Write the status table to the report
 echo "| Tool | Status | Notes |" >> "$REPORT_FILE"
 echo "|------|--------|-------|" >> "$REPORT_FILE"
@@ -348,12 +458,14 @@ echo "| Claude Code | ${INSTALL_STATUS[claude-code]} | ${INSTALL_NOTES[claude-co
 echo "| UV | ${INSTALL_STATUS[uv]} | ${INSTALL_NOTES[uv]} |" >> "$REPORT_FILE"
 echo "| Claude Monitor | ${INSTALL_STATUS[claude-monitor]} | ${INSTALL_NOTES[claude-monitor]} |" >> "$REPORT_FILE"
 echo "| Miniforge | ${INSTALL_STATUS[miniforge]} | ${INSTALL_NOTES[miniforge]} |" >> "$REPORT_FILE"
+echo "| Zsh | ${INSTALL_STATUS[zsh]} | ${INSTALL_NOTES[zsh]} |" >> "$REPORT_FILE"
+echo "| Oh My Zsh | ${INSTALL_STATUS[oh-my-zsh]} | ${INSTALL_NOTES[oh-my-zsh]} |" >> "$REPORT_FILE"
 echo "| Powerlevel10k | ${INSTALL_STATUS[powerlevel10k]} | ${INSTALL_NOTES[powerlevel10k]} |" >> "$REPORT_FILE"
 echo "" >> "$REPORT_FILE"
 
 # Add manual installation instructions for failed items
 FAILED_ITEMS=0
-for tool in tmux gh claude-code uv claude-monitor miniforge powerlevel10k; do
+for tool in tmux gh claude-code uv claude-monitor miniforge zsh oh-my-zsh powerlevel10k; do
     if [[ "${INSTALL_STATUS[$tool]}" == *"Failed"* ]]; then
         ((FAILED_ITEMS++))
     fi

@@ -8,12 +8,7 @@
   "features": {
     "ghcr.io/devcontainers/features/docker-in-docker:2": {},
     "ghcr.io/devcontainers/features/node:1": {},
-    "ghcr.io/devcontainers/features/python:1": {},
-    "ghcr.io/devcontainers-contrib/features/zsh-plugins:0": {
-      "plugins": "git",
-      "omzPlugins": "https://github.com/romkatv/powerlevel10k powerlevel10k",
-      "username": "vscode"
-    }
+    "ghcr.io/devcontainers/features/python:1": {}
   },
   "customizations": {
     "vscode": {
