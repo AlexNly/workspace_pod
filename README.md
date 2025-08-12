@@ -2,7 +2,7 @@
 
 ## Overview
 
-This repository provides a containerized development environment using VS Code Dev Containers. It offers a comprehensive, pre-configured workspace with modern development tools, programming languages, and IDE integrations for efficient software development.
+This repository provides a fully automated containerized development environment using VS Code Dev Containers. It offers a comprehensive, pre-configured workspace with modern development tools, programming languages, and IDE integrations for efficient software development.
 
 ## What's Included
 
@@ -18,13 +18,14 @@ This repository provides a containerized development environment using VS Code D
 - **Docker-in-Docker**: Full Docker support within the container for containerized development
 
 ### Shell and Terminal
-- **Zsh**: Advanced shell with Oh My Zsh framework
-- **Powerlevel10k Theme**: Modern, customizable terminal theme with git integration
+- **Zsh**: Advanced shell automatically installed and configured
+- **Oh My Zsh**: Framework for managing Zsh configuration
+- **Powerlevel10k Theme**: Pre-configured modern terminal theme with full customization
 - **Tmux**: Terminal multiplexer for managing multiple sessions
 
 ### Development Tools
 - **GitHub CLI (gh)**: Command-line interface for GitHub operations
-- **Miniforge**: Conda package manager with conda-forge defaults
+- **Miniforge**: Conda package manager with conda-forge defaults (auto-initialized)
 - **UV**: Fast Python package manager written in Rust
 - **Claude Code CLI**: Anthropic's official CLI for AI-assisted development
 - **Essential Build Tools**: curl, wget, git, build-essential, jq, and more
@@ -78,19 +79,16 @@ This repository provides a containerized development environment using VS Code D
 
 ### Post-Installation Setup
 
-After the container starts, the following tools will be automatically installed via the `install-tools.sh` script:
+The container automatically configures everything during creation. Once started:
 
 1. **Verify Installation**: Check the installation report:
    ```bash
-   cat ~/installation-report.md
+   cat .devcontainer/installation-report.md
    ```
 
-2. **Apply Shell Configuration**: If using the terminal directly:
-   ```bash
-   source ~/.zshrc
-   ```
+2. **Shell Configuration**: Zsh with Powerlevel10k is automatically configured. The terminal will show the Powerlevel10k prompt immediately.
 
-3. **Configure GitHub CLI**: Authenticate with GitHub:
+3. **Configure GitHub CLI** (one-time setup):
    ```bash
    gh auth login
    ```
@@ -99,13 +97,18 @@ After the container starts, the following tools will be automatically installed 
    ```bash
    p10k configure
    ```
+   Note: A comprehensive P10k configuration is already applied automatically.
 
-5. **Test Python Environments**:
-   - Conda/Mamba: `conda --version` or `mamba --version`
-   - UV: `uv --version`
-
-6. **Test Claude Code CLI**:
+5. **Test Installed Tools**:
    ```bash
+   # Python environments
+   conda --version
+   mamba --version
+   uv --version
+   
+   # Development tools
+   tmux -V
+   gh --version
    claude --version
    ```
 
@@ -124,10 +127,12 @@ This will attempt to install all missing tools and generate a detailed report.
 ```
 workspace_pod/
 ├── .devcontainer/
-│   ├── devcontainer.json    # Dev container configuration
-│   └── install-tools.sh     # Automated tool installation script
-├── .gitignore               # Git ignore rules
-└── README.md               # This file
+│   ├── devcontainer.json       # Dev container configuration
+│   ├── install-tools.sh        # Automated tool installation script
+│   ├── p10k.zsh                # Powerlevel10k configuration file
+│   └── installation-report.md  # Generated installation report (after setup)
+├── .gitignore                  # Git ignore rules
+└── README.md                   # This file
 ```
 
 ## System Requirements
@@ -154,12 +159,26 @@ workspace_pod/
 - User `vscode` has sudo privileges
 - For Docker operations, ensure Docker socket is accessible
 
+## Features and Automation
+
+### Automatic Configuration
+- **Shell Setup**: Automatically configures Zsh as the default shell with Oh My Zsh framework
+- **Theme Application**: Applies a fully customized Powerlevel10k theme configuration on first run
+- **Path Configuration**: Automatically adds all tool paths (Miniforge, UV, cargo) to the shell
+- **Conda Initialization**: Miniforge/conda is automatically initialized for both bash and zsh
+
+### Pre-configured Settings
+- **Powerlevel10k Prompt**: Shows git status, Python/Node versions, execution time, and more
+- **Shell Plugins**: Git, Docker, Python, and Node plugins enabled in Oh My Zsh
+- **Terminal Experience**: Professional, clean appearance without emojis in system messages
+
 ## Customization
 
 You can customize the development environment by modifying:
 - `.devcontainer/devcontainer.json`: Add more VS Code extensions or Dev Container features
 - `.devcontainer/install-tools.sh`: Add additional tools or configurations
-- Shell configurations: Modify `.zshrc` or `.p10k.zsh` after container creation
+- `.devcontainer/p10k.zsh`: Modify the Powerlevel10k theme configuration
+- After container creation: Run `p10k configure` for interactive theme customization
 
 ## Support
 
