@@ -2,7 +2,7 @@
 
 set -e
 
-echo "🚀 Starting development environment setup..."
+echo "Starting development environment setup..."
 
 # Colors for output
 RED='\033[0;31m'
@@ -11,9 +11,9 @@ YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 # Function to print colored messages
-print_success() { echo -e "${GREEN}✓ $1${NC}"; }
-print_error() { echo -e "${RED}✗ $1${NC}"; }
-print_info() { echo -e "${YELLOW}ℹ $1${NC}"; }
+print_success() { echo -e "${GREEN}[SUCCESS] $1${NC}"; }
+print_error() { echo -e "${RED}[ERROR] $1${NC}"; }
+print_info() { echo -e "${YELLOW}[INFO] $1${NC}"; }
 
 # Update package list
 print_info "Updating package list..."
@@ -282,21 +282,21 @@ cat > ~/.p10k.zsh << 'EOF'
   typeset -g POWERLEVEL9K_VIRTUALENV_FOREGROUND=37
   typeset -g POWERLEVEL9K_VIRTUALENV_SHOW_PYTHON_VERSION=false
   typeset -g POWERLEVEL9K_VIRTUALENV_SHOW_WITH_PYENV=false
-  typeset -g POWERLEVEL9K_VIRTUALENV_VISUAL_IDENTIFIER_EXPANSION='🐍'
+  typeset -g POWERLEVEL9K_VIRTUALENV_VISUAL_IDENTIFIER_EXPANSION=''
 
   # Conda environment
   typeset -g POWERLEVEL9K_CONDA_FOREGROUND=37
   typeset -g POWERLEVEL9K_CONDA_CONTENT_EXPANSION='${${${${CONDA_PROMPT_MODIFIER#\(}% }%\)}:-${CONDA_PREFIX:t}}'
-  typeset -g POWERLEVEL9K_CONDA_VISUAL_IDENTIFIER_EXPANSION='🅒'
+  typeset -g POWERLEVEL9K_CONDA_VISUAL_IDENTIFIER_EXPANSION=''
 
   # Node version
   typeset -g POWERLEVEL9K_NODE_VERSION_FOREGROUND=70
-  typeset -g POWERLEVEL9K_NODE_VERSION_VISUAL_IDENTIFIER_EXPANSION='⬢'
+  typeset -g POWERLEVEL9K_NODE_VERSION_VISUAL_IDENTIFIER_EXPANSION=''
   typeset -g POWERLEVEL9K_NODE_VERSION_SHOW_ON_UPGLOB='*.js|*.jsx|*.ts|*.tsx|package.json|.node-version|.nvmrc|node_modules'
 
   # Python version
   typeset -g POWERLEVEL9K_PYTHON_VERSION_FOREGROUND=37
-  typeset -g POWERLEVEL9K_PYTHON_VERSION_VISUAL_IDENTIFIER_EXPANSION='🐍'
+  typeset -g POWERLEVEL9K_PYTHON_VERSION_VISUAL_IDENTIFIER_EXPANSION=''
   typeset -g POWERLEVEL9K_PYTHON_VERSION_SHOW_ON_UPGLOB='*.py|requirements.txt|pyproject.toml|setup.py|setup.cfg|tox.ini|.python-version|Pipfile|poetry.lock'
 
   # Current time
@@ -350,15 +350,15 @@ cat > ~/installation-report.md << 'EOF'
 ## Installation Summary
 
 ### Core Tools
-- ✅ tmux - Terminal multiplexer
-- ✅ GitHub CLI - Command-line interface for GitHub
-- ✅ Miniforge - Conda package manager with conda-forge defaults
-- ✅ Oh My Zsh - Zsh configuration framework
-- ✅ Powerlevel10k - Zsh theme
+- tmux - Terminal multiplexer
+- GitHub CLI - Command-line interface for GitHub
+- Miniforge - Conda package manager with conda-forge defaults
+- Oh My Zsh - Zsh configuration framework
+- Powerlevel10k - Zsh theme
 
 ### Development Tools
-- ✅ UV - Fast Python package manager
-- ✅ Claude Code CLI - Anthropic's CLI for Claude
+- UV - Fast Python package manager
+- Claude Code CLI - Anthropic's CLI for Claude
 
 ### Shell Configuration
 - Zsh configured as default shell with Oh My Zsh
@@ -383,5 +383,5 @@ EOF
 print_success "Installation report created at ~/installation-report.md"
 
 echo ""
-print_success "🎉 Development environment setup completed successfully!"
+print_success "Development environment setup completed successfully!"
 print_info "Please restart your terminal or run 'source ~/.zshrc' to apply all changes."
