@@ -98,7 +98,7 @@ if ! command_exists gh; then
         INSTALL_GH_DEB="(type -p wget >/dev/null || apt-get install wget -y) && \
             wget -qO- https://cli.github.com/packages/githubcli-archive-keyring.gpg | tee /usr/share/keyrings/githubcli-archive-keyring.gpg > /dev/null && \
             chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg && \
-            echo 'deb [arch=\$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main' | tee /etc/apt/sources.list.d/github-cli.list > /dev/null && \
+            echo 'deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main' | tee /etc/apt/sources.list.d/github-cli.list > /dev/null && \
             apt-get update && \
             apt-get install gh -y"
         
@@ -134,111 +134,31 @@ else
     record_status "gh" "Already Installed" "Version: $(gh --version 2>/dev/null | head -n1 || echo 'unknown')"
 fi
 
-# Install Miniforge
-echo "### Miniforge Installation" >> "$REPORT_FILE"
-if ! command_exists conda && ! command_exists mamba; then
-    echo "Installing Miniforge..."
-    MINIFORGE_URL="https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-$(uname -m).sh"
-    
-    # Download installer
-    if command_exists wget; then
-        wget -q "$MINIFORGE_URL" -O /tmp/miniforge.sh
-    elif command_exists curl; then
-        curl -sL "$MINIFORGE_URL" -o /tmp/miniforge.sh
+# Install claude-code
+echo "### Claude Code Installation" >> "$REPORT_FILE"
+if ! command_exists claude-code; then
+    # Check for Node.js and npm first
+    if command_exists node && command_exists npm; then
+        echo "Installing claude-code via npm..."
+        
+        # Try npm install without sudo first
+        if npm install -g @anthropic-ai/claude-code 2>/dev/null; then
+            record_status "claude-code" "Success" "Installed via npm"
+        elif command_exists sudo; then
+            echo "Retrying claude-code installation with sudo..."
+            if sudo npm install -g @anthropic-ai/claude-code 2>/dev/null; then
+                record_status "claude-code" "Success" "Installed via npm with sudo"
+            else
+                record_status "claude-code" "Failed" "Installation failed - see manual instructions below"
+            fi
+        else
+            record_status "claude-code" "Failed" "Installation failed - see manual instructions below"
+        fi
     else
-        record_status "miniforge" "Failed" "Neither wget nor curl available for download"
-    fi
-    
-    if [ -f /tmp/miniforge.sh ]; then
-        bash /tmp/miniforge.sh -b -p $HOME/miniforge3
-        rm /tmp/miniforge.sh
-        
-        # Add to PATH
-        echo 'export PATH="$HOME/miniforge3/bin:$PATH"' >> ~/.bashrc
-        echo 'export PATH="$HOME/miniforge3/bin:$PATH"' >> ~/.zshrc 2>/dev/null || true
-        
-        # Initialize conda
-        $HOME/miniforge3/bin/conda init bash
-        $HOME/miniforge3/bin/conda init zsh 2>/dev/null || true
-        
-        record_status "miniforge" "Success" "Installed to $HOME/miniforge3"
-    else
-        record_status "miniforge" "Failed" "Download failed"
+        record_status "claude-code" "Failed" "Node.js and npm are required but not found"
     fi
 else
-    if command_exists conda; then
-        record_status "miniforge" "Already Installed" "Conda version: $(conda --version 2>/dev/null || echo 'unknown')"
-    else
-        record_status "miniforge" "Already Installed" "Mamba version: $(mamba --version 2>/dev/null || echo 'unknown')"
-    fi
-fi
-
-# Install Oh My Zsh
-echo "### Oh My Zsh Installation" >> "$REPORT_FILE"
-if [ ! -d "$HOME/.oh-my-zsh" ]; then
-    echo "Installing Oh My Zsh..."
-    if command_exists curl; then
-        sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
-        record_status "oh-my-zsh" "Success" "Installed to $HOME/.oh-my-zsh"
-    elif command_exists wget; then
-        sh -c "$(wget -qO- https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
-        record_status "oh-my-zsh" "Success" "Installed to $HOME/.oh-my-zsh"
-    else
-        record_status "oh-my-zsh" "Failed" "Neither curl nor wget available"
-    fi
-else
-    record_status "oh-my-zsh" "Already Installed" "Located at $HOME/.oh-my-zsh"
-fi
-
-# Install Powerlevel10k theme
-echo "### Powerlevel10k Theme Installation" >> "$REPORT_FILE"
-if [ ! -d "${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/themes/powerlevel10k" ]; then
-    echo "Installing Powerlevel10k theme..."
-    git clone --depth=1 https://github.com/romkatv/powerlevel10k.git ${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/themes/powerlevel10k
-    record_status "powerlevel10k" "Success" "Installed to Oh My Zsh custom themes"
-else
-    record_status "powerlevel10k" "Already Installed" "Located in Oh My Zsh custom themes"
-fi
-
-# Configure Zsh (basic configuration without the full P10k config for brevity)
-if [ -f "$HOME/.oh-my-zsh/oh-my-zsh.sh" ]; then
-    cat > ~/.zshrc << 'EOF'
-# Enable Powerlevel10k instant prompt
-if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
-  source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
-fi
-
-# Path to Oh My Zsh
-export ZSH="$HOME/.oh-my-zsh"
-
-# Set theme
-ZSH_THEME="powerlevel10k/powerlevel10k"
-
-# Plugins
-plugins=(git)
-
-# Source Oh My Zsh
-source $ZSH/oh-my-zsh.sh
-
-# User configuration
-DISABLE_AUTO_UPDATE=true
-DISABLE_UPDATE_PROMPT=true
-
-# Miniforge/Conda initialization
-if [ -f "$HOME/miniforge3/etc/profile.d/conda.sh" ]; then
-    . "$HOME/miniforge3/etc/profile.d/conda.sh"
-fi
-
-# Load P10k configuration if it exists
-[[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
-
-# Add cargo/rust binaries to PATH (for UV)
-export PATH="$HOME/.cargo/bin:$PATH"
-
-# Add UV tools to PATH
-export PATH="$HOME/.local/bin:$PATH"
-EOF
-    echo "Zsh configuration updated"
+    record_status "claude-code" "Already Installed" "Version: $(claude-code --version 2>/dev/null || echo 'unknown')"
 fi
 
 # Install UV (Python package manager)
@@ -336,30 +256,87 @@ else
     fi
 fi
 
-# Install Claude Code CLI
-echo "### Claude Code CLI Installation" >> "$REPORT_FILE"
-if ! command_exists claude; then
-    echo "Installing Claude Code CLI..."
-    
-    if command_exists curl; then
-        curl -fsSL https://install.claude.ai/claude-code | sh
-        if [ $? -eq 0 ]; then
-            record_status "claude-code" "Success" "Installed via official installer"
-        else
-            record_status "claude-code" "Failed" "Installation script failed"
-        fi
-    elif command_exists wget; then
-        wget -qO- https://install.claude.ai/claude-code | sh
-        if [ $? -eq 0 ]; then
-            record_status "claude-code" "Success" "Installed via official installer"
-        else
-            record_status "claude-code" "Failed" "Installation script failed"
-        fi
+# Install claude-monitor using UV
+echo "### Claude Monitor Installation" >> "$REPORT_FILE"
+if command_exists uv; then
+    # Check if claude-monitor is already installed
+    if uv tool list 2>/dev/null | grep -q "claude-monitor"; then
+        MONITOR_VERSION=$(uv tool list 2>/dev/null | grep "claude-monitor" | awk '{print $2}' || echo 'unknown')
+        record_status "claude-monitor" "Already Installed" "Version: $MONITOR_VERSION"
     else
-        record_status "claude-code" "Failed" "Neither curl nor wget available"
+        echo "Installing claude-monitor via UV..."
+        if uv tool install claude-monitor 2>/dev/null; then
+            record_status "claude-monitor" "Success" "Installed via UV tool"
+        else
+            # Try with --force in case of partial installation
+            echo "Retrying claude-monitor installation with --force..."
+            if uv tool install claude-monitor --force 2>/dev/null; then
+                record_status "claude-monitor" "Success" "Installed via UV tool (forced)"
+            else
+                record_status "claude-monitor" "Failed" "UV tool installation failed"
+            fi
+        fi
     fi
 else
-    record_status "claude-code" "Already Installed" "Version: $(claude --version 2>/dev/null || echo 'unknown')"
+    record_status "claude-monitor" "Failed" "UV not available - install UV first"
+fi
+
+# Install Miniforge
+echo "### Miniforge Installation" >> "$REPORT_FILE"
+if ! command_exists conda && ! command_exists mamba; then
+    echo "Installing Miniforge..."
+    MINIFORGE_URL="https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-$(uname -m).sh"
+    
+    # Download installer
+    if command_exists wget; then
+        wget -q "$MINIFORGE_URL" -O /tmp/miniforge.sh
+    elif command_exists curl; then
+        curl -sL "$MINIFORGE_URL" -o /tmp/miniforge.sh
+    else
+        record_status "miniforge" "Failed" "Neither wget nor curl available for download"
+    fi
+    
+    if [ -f /tmp/miniforge.sh ]; then
+        bash /tmp/miniforge.sh -b -p $HOME/miniforge3
+        rm /tmp/miniforge.sh
+        
+        # Add to PATH
+        echo 'export PATH="$HOME/miniforge3/bin:$PATH"' >> ~/.bashrc
+        echo 'export PATH="$HOME/miniforge3/bin:$PATH"' >> ~/.zshrc 2>/dev/null || true
+        
+        # Initialize conda
+        $HOME/miniforge3/bin/conda init bash
+        $HOME/miniforge3/bin/conda init zsh 2>/dev/null || true
+        
+        record_status "miniforge" "Success" "Installed to $HOME/miniforge3"
+    else
+        record_status "miniforge" "Failed" "Download failed"
+    fi
+else
+    if command_exists conda; then
+        record_status "miniforge" "Already Installed" "Conda version: $(conda --version 2>/dev/null || echo 'unknown')"
+    else
+        record_status "miniforge" "Already Installed" "Mamba version: $(mamba --version 2>/dev/null || echo 'unknown')"
+    fi
+fi
+
+# Install Powerlevel10k theme (requires git)
+echo "### Powerlevel10k Installation" >> "$REPORT_FILE"
+if command_exists git; then
+    P10K_DIR="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/themes/powerlevel10k"
+    if [ ! -d "$P10K_DIR" ]; then
+        echo "Installing Powerlevel10k theme..."
+        git clone --depth=1 https://github.com/romkatv/powerlevel10k.git "$P10K_DIR" 2>/dev/null
+        if [ $? -eq 0 ]; then
+            record_status "powerlevel10k" "Success" "Installed to ZSH custom themes"
+        else
+            record_status "powerlevel10k" "Failed" "Git clone failed"
+        fi
+    else
+        record_status "powerlevel10k" "Already Installed" "Located at $P10K_DIR"
+    fi
+else
+    record_status "powerlevel10k" "Failed" "Git is required but not found"
 fi
 
 # Write the status table to the report
@@ -367,16 +344,16 @@ echo "| Tool | Status | Notes |" >> "$REPORT_FILE"
 echo "|------|--------|-------|" >> "$REPORT_FILE"
 echo "| tmux | ${INSTALL_STATUS[tmux]} | ${INSTALL_NOTES[tmux]} |" >> "$REPORT_FILE"
 echo "| GitHub CLI | ${INSTALL_STATUS[gh]} | ${INSTALL_NOTES[gh]} |" >> "$REPORT_FILE"
-echo "| Miniforge | ${INSTALL_STATUS[miniforge]} | ${INSTALL_NOTES[miniforge]} |" >> "$REPORT_FILE"
-echo "| Oh My Zsh | ${INSTALL_STATUS[oh-my-zsh]} | ${INSTALL_NOTES[oh-my-zsh]} |" >> "$REPORT_FILE"
-echo "| Powerlevel10k | ${INSTALL_STATUS[powerlevel10k]} | ${INSTALL_NOTES[powerlevel10k]} |" >> "$REPORT_FILE"
-echo "| UV | ${INSTALL_STATUS[uv]} | ${INSTALL_NOTES[uv]} |" >> "$REPORT_FILE"
 echo "| Claude Code | ${INSTALL_STATUS[claude-code]} | ${INSTALL_NOTES[claude-code]} |" >> "$REPORT_FILE"
+echo "| UV | ${INSTALL_STATUS[uv]} | ${INSTALL_NOTES[uv]} |" >> "$REPORT_FILE"
+echo "| Claude Monitor | ${INSTALL_STATUS[claude-monitor]} | ${INSTALL_NOTES[claude-monitor]} |" >> "$REPORT_FILE"
+echo "| Miniforge | ${INSTALL_STATUS[miniforge]} | ${INSTALL_NOTES[miniforge]} |" >> "$REPORT_FILE"
+echo "| Powerlevel10k | ${INSTALL_STATUS[powerlevel10k]} | ${INSTALL_NOTES[powerlevel10k]} |" >> "$REPORT_FILE"
 echo "" >> "$REPORT_FILE"
 
 # Add manual installation instructions for failed items
 FAILED_ITEMS=0
-for tool in tmux gh miniforge oh-my-zsh powerlevel10k uv claude-code; do
+for tool in tmux gh claude-code uv claude-monitor miniforge powerlevel10k; do
     if [[ "${INSTALL_STATUS[$tool]}" == *"Failed"* ]]; then
         ((FAILED_ITEMS++))
     fi
@@ -397,6 +374,16 @@ if [ $FAILED_ITEMS -gt 0 ]; then
         echo "sudo apt install -y tmux" >> "$REPORT_FILE"
         echo '```' >> "$REPORT_FILE"
         echo "" >> "$REPORT_FILE"
+        echo "**For Red Hat/CentOS/Fedora:**" >> "$REPORT_FILE"
+        echo '```bash' >> "$REPORT_FILE"
+        echo "sudo yum install -y tmux" >> "$REPORT_FILE"
+        echo '```' >> "$REPORT_FILE"
+        echo "" >> "$REPORT_FILE"
+        echo "**For macOS:**" >> "$REPORT_FILE"
+        echo '```bash' >> "$REPORT_FILE"
+        echo "brew install tmux" >> "$REPORT_FILE"
+        echo '```' >> "$REPORT_FILE"
+        echo "" >> "$REPORT_FILE"
     fi
     
     if [[ "${INSTALL_STATUS[gh]}" == *"Failed"* ]]; then
@@ -410,6 +397,118 @@ if [ $FAILED_ITEMS -gt 0 ]; then
         echo "sudo apt update" >> "$REPORT_FILE"
         echo "sudo apt install gh -y" >> "$REPORT_FILE"
         echo '```' >> "$REPORT_FILE"
+        echo "" >> "$REPORT_FILE"
+        echo "**For macOS:**" >> "$REPORT_FILE"
+        echo '```bash' >> "$REPORT_FILE"
+        echo "brew install gh" >> "$REPORT_FILE"
+        echo '```' >> "$REPORT_FILE"
+        echo "" >> "$REPORT_FILE"
+        echo "**For other systems, visit:** https://github.com/cli/cli#installation" >> "$REPORT_FILE"
+        echo "" >> "$REPORT_FILE"
+    fi
+    
+    if [[ "${INSTALL_STATUS[claude-code]}" == *"Failed"* ]]; then
+        echo "### Installing Claude Code manually" >> "$REPORT_FILE"
+        echo "" >> "$REPORT_FILE"
+        echo "Claude Code requires Node.js and npm to be installed first." >> "$REPORT_FILE"
+        echo "" >> "$REPORT_FILE"
+        echo "**Step 1: Install Node.js (if not already installed):**" >> "$REPORT_FILE"
+        echo "Visit https://nodejs.org/ or use your package manager" >> "$REPORT_FILE"
+        echo "" >> "$REPORT_FILE"
+        echo "**Step 2: Install Claude Code:**" >> "$REPORT_FILE"
+        echo '```bash' >> "$REPORT_FILE"
+        echo "npm install -g @anthropic-ai/claude-code" >> "$REPORT_FILE"
+        echo '```' >> "$REPORT_FILE"
+        echo "" >> "$REPORT_FILE"
+        echo "**If you get permission errors, try:**" >> "$REPORT_FILE"
+        echo '```bash' >> "$REPORT_FILE"
+        echo "sudo npm install -g @anthropic-ai/claude-code" >> "$REPORT_FILE"
+        echo '```' >> "$REPORT_FILE"
+        echo "" >> "$REPORT_FILE"
+    fi
+    
+    if [[ "${INSTALL_STATUS[uv]}" == *"Failed"* ]]; then
+        echo "### Installing UV manually" >> "$REPORT_FILE"
+        echo "" >> "$REPORT_FILE"
+        echo "UV is a fast Python package manager written in Rust." >> "$REPORT_FILE"
+        echo "" >> "$REPORT_FILE"
+        echo "**Method 1: Official Installer (Recommended):**" >> "$REPORT_FILE"
+        echo '```bash' >> "$REPORT_FILE"
+        echo "curl -LsSf https://astral.sh/uv/install.sh | sh" >> "$REPORT_FILE"
+        echo '```' >> "$REPORT_FILE"
+        echo "" >> "$REPORT_FILE"
+        echo "**Method 2: Using pip:**" >> "$REPORT_FILE"
+        echo '```bash' >> "$REPORT_FILE"
+        echo "pip install uv" >> "$REPORT_FILE"
+        echo '```' >> "$REPORT_FILE"
+        echo "" >> "$REPORT_FILE"
+        echo "**Method 3: Using pipx (if installed):**" >> "$REPORT_FILE"
+        echo '```bash' >> "$REPORT_FILE"
+        echo "pipx install uv" >> "$REPORT_FILE"
+        echo '```' >> "$REPORT_FILE"
+        echo "" >> "$REPORT_FILE"
+        echo "**Method 4: Using Homebrew (macOS/Linux):**" >> "$REPORT_FILE"
+        echo '```bash' >> "$REPORT_FILE"
+        echo "brew install uv" >> "$REPORT_FILE"
+        echo '```' >> "$REPORT_FILE"
+        echo "" >> "$REPORT_FILE"
+        echo "**After installation, you may need to add UV to your PATH:**" >> "$REPORT_FILE"
+        echo '```bash' >> "$REPORT_FILE"
+        echo 'export PATH="$HOME/.cargo/bin:$PATH"' >> "$REPORT_FILE"
+        echo '```' >> "$REPORT_FILE"
+        echo "" >> "$REPORT_FILE"
+        echo "**For more information, visit:** https://github.com/astral-sh/uv" >> "$REPORT_FILE"
+        echo "" >> "$REPORT_FILE"
+    fi
+    
+    if [[ "${INSTALL_STATUS[claude-monitor]}" == *"Failed"* ]]; then
+        echo "### Installing Claude Monitor manually" >> "$REPORT_FILE"
+        echo "" >> "$REPORT_FILE"
+        echo "Claude Monitor requires UV to be installed first." >> "$REPORT_FILE"
+        echo "" >> "$REPORT_FILE"
+        echo "**Step 1: Ensure UV is installed (see UV instructions above)**" >> "$REPORT_FILE"
+        echo "" >> "$REPORT_FILE"
+        echo "**Step 2: Install Claude Monitor using UV:**" >> "$REPORT_FILE"
+        echo '```bash' >> "$REPORT_FILE"
+        echo "uv tool install claude-monitor" >> "$REPORT_FILE"
+        echo '```' >> "$REPORT_FILE"
+        echo "" >> "$REPORT_FILE"
+        echo "**If the tool is already partially installed, use --force:**" >> "$REPORT_FILE"
+        echo '```bash' >> "$REPORT_FILE"
+        echo "uv tool install claude-monitor --force" >> "$REPORT_FILE"
+        echo '```' >> "$REPORT_FILE"
+        echo "" >> "$REPORT_FILE"
+        echo "**After installation, claude-monitor commands will be available:**" >> "$REPORT_FILE"
+        echo '```bash' >> "$REPORT_FILE"
+        echo "claude-monitor --help" >> "$REPORT_FILE"
+        echo '```' >> "$REPORT_FILE"
+        echo "" >> "$REPORT_FILE"
+        echo "**For more information, visit the claude-monitor documentation**" >> "$REPORT_FILE"
+        echo "" >> "$REPORT_FILE"
+    fi
+    
+    if [[ "${INSTALL_STATUS[miniforge]}" == *"Failed"* ]]; then
+        echo "### Installing Miniforge manually" >> "$REPORT_FILE"
+        echo "" >> "$REPORT_FILE"
+        echo "**For Linux/macOS:**" >> "$REPORT_FILE"
+        echo '```bash' >> "$REPORT_FILE"
+        echo "wget https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-\$(uname -m).sh" >> "$REPORT_FILE"
+        echo "bash Miniforge3-Linux-\$(uname -m).sh" >> "$REPORT_FILE"
+        echo '```' >> "$REPORT_FILE"
+        echo "" >> "$REPORT_FILE"
+        echo "**Follow the prompts and restart your shell after installation.**" >> "$REPORT_FILE"
+        echo "" >> "$REPORT_FILE"
+    fi
+    
+    if [[ "${INSTALL_STATUS[powerlevel10k]}" == *"Failed"* ]]; then
+        echo "### Installing Powerlevel10k manually" >> "$REPORT_FILE"
+        echo "" >> "$REPORT_FILE"
+        echo "**Clone the repository:**" >> "$REPORT_FILE"
+        echo '```bash' >> "$REPORT_FILE"
+        echo "git clone --depth=1 https://github.com/romkatv/powerlevel10k.git \${ZSH_CUSTOM:-\$HOME/.oh-my-zsh/custom}/themes/powerlevel10k" >> "$REPORT_FILE"
+        echo '```' >> "$REPORT_FILE"
+        echo "" >> "$REPORT_FILE"
+        echo "**Then set ZSH_THEME=\"powerlevel10k/powerlevel10k\" in ~/.zshrc**" >> "$REPORT_FILE"
         echo "" >> "$REPORT_FILE"
     fi
 else
