@@ -408,46 +408,13 @@ export PATH="$HOME/.cargo/bin:$PATH"
 [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
 EOF
 
-# Create basic P10k configuration
-cat > ~/.p10k.zsh << 'EOF'
-# Basic Powerlevel10k configuration
-'builtin' 'local' '-a' 'p10k_config_opts'
-[[ ! -o 'aliases'         ]] || p10k_config_opts+=('aliases')
-[[ ! -o 'sh_glob'         ]] || p10k_config_opts+=('sh_glob')
-[[ ! -o 'no_brace_expand' ]] || p10k_config_opts+=('no_brace_expand')
-'builtin' 'setopt' 'no_aliases' 'no_sh_glob' 'brace_expand'
-
-() {
-  emulate -L zsh -o extended_glob
-  unset -m '(POWERLEVEL9K_*|DEFAULT_USER)~POWERLEVEL9K_GITSTATUS_DIR'
-  
-  typeset -g POWERLEVEL9K_LEFT_PROMPT_ELEMENTS=(
-    dir
-    vcs
-    newline
-    prompt_char
-  )
-  
-  typeset -g POWERLEVEL9K_RIGHT_PROMPT_ELEMENTS=(
-    status
-    command_execution_time
-    virtualenv
-    conda
-    node_version
-    time
-  )
-  
-  typeset -g POWERLEVEL9K_PROMPT_ADD_NEWLINE=true
-  typeset -g POWERLEVEL9K_PROMPT_CHAR_{OK,ERROR}_VIINS_CONTENT_EXPANSION='❯'
-  typeset -g POWERLEVEL9K_INSTANT_PROMPT=verbose
-  
-  (( ! $+functions[p10k] )) || p10k reload
-}
-
-typeset -g POWERLEVEL9K_CONFIG_FILE=${${(%):-%x}:a}
-(( ${#p10k_config_opts} )) && setopt ${p10k_config_opts[@]}
-'builtin' 'unset' 'p10k_config_opts'
-EOF
+# Copy P10k configuration
+if [ -f "$SCRIPT_DIR/p10k.zsh" ]; then
+    cp "$SCRIPT_DIR/p10k.zsh" ~/.p10k.zsh
+    echo "Copied Powerlevel10k configuration to ~/.p10k.zsh"
+else
+    echo "Warning: p10k.zsh configuration file not found in $SCRIPT_DIR"
+fi
 
 # Write the status table to the report
 echo "| Tool | Status | Notes |" >> "$REPORT_FILE"
