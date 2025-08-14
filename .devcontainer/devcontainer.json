@@ -1,6 +1,8 @@
 {
   "name": "Workspace Pod Development Environment",
-  "image": "mcr.microsoft.com/devcontainers/base:debian",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
   "runArgs": [
     "--privileged",
     "--platform=linux/amd64"
