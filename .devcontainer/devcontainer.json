@@ -1,8 +1,9 @@
-{
+a{
   "name": "Workspace Pod Development Environment",
   "image": "mcr.microsoft.com/devcontainers/base:debian",
   "runArgs": [
-    "--privileged"
+    "--privileged",
+    "--platform=linux/amd64"
   ],
   "remoteUser": "vscode",
   "features": {
